@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kaynak İş Emri Ön İzleme</title>
+<meta name="description" content="Kaynak iş emri otomasyonunun gerçek ekranlarıyla adım adım etkileşimli ön izlemesi.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
+<style>
+/* Yerleşim: solda iş emrindeki operasyon rotası (OP 10, OP 20 ...), sağda gerçek ekran.
+   Açıklama kartları teknik resimdeki POZ balonu gibi: numaralı balon + hedefe giden kılavuz çizgisi. */
+:root {
+  --paper: #eef0ee;      /* çizim filmi zemini, hafif yeşil-gri */
+  --sheet: #fbfcfb;      /* kart ve panel */
+  --ink: #1b2024;        /* grafit */
+  --ink-2: #5a6369;
+  --rule: #c7ccc9;
+  --signal: #f2c230;     /* sinyal sarısı (RAL 1003): yalnızca vurgu */
+  --on-signal: #1b2024;
+  --dim: rgba(20, 24, 27, .58);
+  --f-display: "Archivo", "Arial Narrow", "Segoe UI", sans-serif;
+  --f-body: "Archivo", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #14171a; --sheet: #1d2125; --ink: #e7eae8; --ink-2: #9aa3a8; --rule: #343b40;
+    --signal: #f5c842; --on-signal: #14171a; --dim: rgba(0, 0, 0, .64); color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #14171a; --sheet: #1d2125; --ink: #e7eae8; --ink-2: #9aa3a8; --rule: #343b40;
+  --signal: #f5c842; --on-signal: #14171a; --dim: rgba(0, 0, 0, .64); color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font: 400 1rem/1.5 var(--f-body); font-variation-settings: "wdth" 100;
+  padding-inline: 16px; padding-block: 20px 36px;
+}
+.wrap { max-width: 1400px; margin: 0 auto; display: grid; gap: 18px; }
+button { font-family: inherit; }
+
+/* başlık */
+header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 32px; }
+h1 {
+  margin: 0; font: 760 clamp(1.75rem, 3.6vw, 2.75rem)/1 var(--f-display);
+  font-variation-settings: "wdth" 72; letter-spacing: -.005em; text-wrap: balance;
+}
+.lede { margin: 8px 0 0; color: var(--ink-2); max-width: 60ch; }
+.who { text-align: right; font-size: .9375rem; line-height: 1.4; }
+.who strong { display: block; font-weight: 650; }
+.who a { color: var(--ink-2); text-decoration-color: var(--rule); text-underline-offset: 3px; }
+.who a:hover { color: var(--ink); }
+
+/* ana ızgara */
+.main { display: grid; grid-template-columns: 236px minmax(0, 1fr); gap: 18px; align-items: start; }
+
+/* operasyon rotası */
+.route { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+.route h2 { margin: 0 0 8px; font: 650 .875rem/1.2 var(--f-body); color: var(--ink-2); }
+.route ol { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--ink); }
+.route li { border-bottom: 1px solid var(--rule); }
+.route button {
+  width: 100%; display: grid; grid-template-columns: 52px 1fr auto; align-items: center; gap: 10px;
+  border: 0; background: transparent; color: var(--ink); text-align: left; cursor: pointer;
+  padding: 10px 8px 10px 0; font-size: .9688rem; line-height: 1.25;
+}
+.route .op {
+  font: 700 .8125rem/1 var(--f-display); font-variation-settings: "wdth" 80; font-variant-numeric: tabular-nums;
+  padding: 6px 0; text-align: center; color: var(--ink-2); border: 1px solid var(--rule);
+}
+.route .n { font-size: .8125rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.route button:hover .op { border-color: var(--ink); color: var(--ink); }
+.route button[aria-current="step"] { font-weight: 650; }
+.route button[aria-current="step"] .op { background: var(--signal); border-color: var(--signal); color: var(--on-signal); }
+.route button.done .op { color: var(--ink); border-color: var(--ink); }
+.route button:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+
+/* sahne */
+.stage { min-width: 0; display: grid; gap: 12px; }
+.frame { position: relative; background: var(--sheet); border: 1px solid var(--ink); }
+.shot { position: relative; margin: 0; line-height: 0; overflow: hidden; }  /* sola yaslı: küçük diyalogda kart sağa sığar */
+.shot img { display: block; width: 100%; height: auto; cursor: zoom-in; }
+.spot {
+  position: absolute; outline: 2px solid var(--signal); outline-offset: 0;
+  box-shadow: 0 0 0 9999px var(--dim); pointer-events: none; transition: all .35s ease;
+}
+.dimall { position: absolute; inset: 0; background: var(--dim); pointer-events: none; }
+svg.leader { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 2; display: none; }
+svg.leader line { stroke: var(--signal); stroke-width: 1.5; }
+svg.leader circle { fill: var(--signal); }
+
+.card {
+  position: absolute; z-index: 3; width: min(350px, 88%);
+  background: var(--sheet); color: var(--ink); border: 1px solid var(--ink);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, .3);
+  padding: 16px 18px 14px; display: grid; gap: 10px; transition: left .35s ease, top .35s ease;
+}
+.card .head { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; }
+.balloon {
+  width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  border: 1.5px solid var(--ink); background: var(--signal); color: var(--on-signal);
+  font: 700 .875rem/1 var(--f-display); font-variant-numeric: tabular-nums;
+}
+.card h3 { margin: 3px 0 0; font: 720 1.3125rem/1.12 var(--f-display); font-variation-settings: "wdth" 78; text-wrap: balance; }
+.card p { margin: 0; font-size: .9688rem; line-height: 1.55; }
+.card .foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-top: 4px; border-top: 1px solid var(--rule); }
+.count { font-size: .8125rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.pips { display: flex; gap: 3px; margin-top: 4px; }
+.pips i { width: 14px; height: 3px; background: var(--rule); }
+.pips i.on { background: var(--ink); }
+.btns { display: flex; gap: 8px; }
+button.b {
+  font: 600 .9375rem/1 var(--f-body); border: 1px solid var(--ink); background: transparent; color: var(--ink);
+  padding: 10px 14px; cursor: pointer;
+}
+button.b.primary { background: var(--ink); color: var(--sheet); }
+button.b.primary:hover { background: var(--signal); border-color: var(--signal); color: var(--on-signal); }
+button.b:disabled { opacity: .35; cursor: default; }
+button.b:focus-visible, .thumbs button:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+
+/* sahne altı */
+.below { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; justify-content: space-between; }
+.scene-title { min-width: 0; font: 650 1.0625rem/1.3 var(--f-body); }
+.scene-title span { display: block; font-weight: 400; font-size: .875rem; color: var(--ink-2); }
+.thumbs { display: flex; gap: 8px; overflow-x: auto; padding: 2px; max-width: 100%; }
+.thumbs button { border: 1px solid var(--rule); padding: 0; background: var(--sheet); cursor: pointer; line-height: 0; flex: 0 0 auto; }
+.thumbs img { width: 104px; height: 62px; object-fit: cover; object-position: top; display: block; opacity: .7; }
+.thumbs button[aria-current="true"] { border-color: var(--ink); box-shadow: inset 0 -3px 0 var(--signal); }
+.thumbs button[aria-current="true"] img, .thumbs button:hover img { opacity: 1; }
+
+footer { display: flex; flex-wrap: wrap; gap: 8px 32px; justify-content: space-between; font-size: .8438rem; color: var(--ink-2); border-top: 1px solid var(--rule); padding-top: 12px; }
+footer p { margin: 0; max-width: 78ch; }
+footer .contact { user-select: all; color: var(--ink); }
+
+/* büyütme */
+.lightbox { position: fixed; inset: 0; z-index: 10; background: rgba(10, 12, 14, .94); display: grid; grid-template-rows: auto 1fr; padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px); }
+.lightbox .bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 16px; color: #e7eae8; }
+.lightbox .bar button { color: #e7eae8; border-color: #59636a; }
+.lightbox .pane { overflow: auto; padding: 0 16px 16px; }
+.lightbox .pane img { display: block; max-width: none; width: auto; margin: 0 auto; }
+.lightbox .pane.fit img { max-width: 100%; height: auto; }
+
+/* orta genişlik: rota üstte yatay şerit */
+@media (max-width: 980px) {
+  .main { grid-template-columns: minmax(0, 1fr); }
+  .route { position: static; }
+  .route h2 { display: none; }
+  .route ol { display: flex; overflow-x: auto; border-top: 0; border-bottom: 1px solid var(--ink); }
+  .route li { border-bottom: 0; flex: 0 0 auto; }
+  .route button { grid-template-columns: auto auto; padding: 8px 14px 8px 0; }
+  .route .n { display: none; }
+  .route .op { padding: 5px 7px; }
+  .who { text-align: left; }
+}
+/* dar ekran: kart görüntünün altına iner, kılavuz çizgisi gizlenir */
+@media (max-width: 760px) {
+  .card { position: static; width: auto; box-shadow: none; border: 0; border-top: 1px solid var(--ink); }
+  svg.leader { display: none; }
+  .spot { box-shadow: 0 0 0 9999px rgba(20, 24, 27, .35); }
+}
+@media (prefers-reduced-motion: reduce) { .spot, .card { transition: none; } }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Saha fotoğrafından kaynak iş emrine</h1>
+      <p class="lede">Programın gerçek ekranları, gerçek bir montajın saha fotoğraflarıyla. Kartları izleyin ya da soldaki operasyonlardan birine atlayın.</p>
+    </div>
+    <div class="who">
+      <strong>İbrahim Asaf Özenoğlu</strong>
+      Makine mühendisi, üretim otomasyonu<br>
+      <a href="https://www.linkedin.com/in/ibrahimozenoglu" target="_blank" rel="noopener">LinkedIn profili</a>
+    </div>
+  </header>
+
+  <div class="main">
+    <nav class="route" aria-label="Operasyon rotası">
+      <h2>Operasyon rotası</h2>
+      <ol id="steps"></ol>
+    </nav>
+
+    <section class="stage" aria-label="Ekran">
+      <div class="frame" id="frame">
+        <div class="shot" id="shot">
+          <img id="img" alt="">
+          <div class="spot" id="spot" hidden></div>
+          <div class="dimall" id="dimall" hidden></div>
+        </div>
+        <svg class="leader" id="leader" aria-hidden="true"><line id="ll"></line><circle id="lc" r="3.5"></circle></svg>
+        <div class="card" id="card" role="dialog" aria-live="polite" aria-labelledby="ctitle">
+          <div class="head">
+            <span class="balloon" id="cnum">1</span>
+            <h3 id="ctitle"></h3>
+          </div>
+          <p id="ctext"></p>
+          <div class="foot">
+            <div>
+              <span class="count" id="ccount"></span>
+              <div class="pips" id="pips"></div>
+            </div>
+            <div class="btns">
+              <button class="b" id="prev" type="button">Geri</button>
+              <button class="b primary" id="next" type="button">Sonraki</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="below">
+        <div class="scene-title" id="stitle"></div>
+        <div class="thumbs" id="thumbs" aria-label="Bu operasyondaki ekranlar"></div>
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    <p>Ekranlar programın kendisinden alınmıştır. Proje adı, parça kodları, teknik resim ve WPS numaraları tanıtım için değiştirilmiş örnek verilerdir; fotoğraflar ve işaretler sahadan geldiği gibidir. Görsele tıklayınca büyür; ← → tuşlarıyla ilerlenir.</p>
+    <p>İletişim: <span class="contact">ibrahimasafozenoglu@gmail.com</span>, <span class="contact">0551 083 42 71</span></p>
+  </footer>
+</div>
+
+<div class="lightbox" id="lb" hidden>
+  <div class="bar"><span id="lbt"></span><span><button class="b" id="lbfit" type="button">Gerçek boyut</button> <button class="b" id="lbx" type="button">Kapat</button></span></div>
+  <div class="pane fit" id="lbp"><img id="lbimg" alt=""></div>
+</div>
+
+<script src="sahneler.js"></script>
+<script>
+(function () {
+  var D = window.ONIZLEME || { adimlar: [], sahneler: [] };
+  // Düz sıra: her sahnenin her kartı bir durak
+  var stops = [];
+  D.sahneler.forEach(function (s, si) {
+    (s.kartlar.length ? s.kartlar : [{ hedef: null, baslik: s.baslik, metin: "" }]).forEach(function (k, ki) {
+      stops.push({ si: si, ki: ki });
+    });
+  });
+  var pos = 0;
+  var $ = function (id) { return document.getElementById(id); };
+  var img = $("img"), spot = $("spot"), dimall = $("dimall"), card = $("card"), shot = $("shot"), frame = $("frame");
+  var leader = $("leader"), ll = $("ll"), lc = $("lc");
+
+  // operasyon rotası: iş emrindeki gibi 10'ar artan OP numaraları
+  var adimlar = D.adimlar.filter(function (a) { return D.sahneler.some(function (s) { return s.adim === a.id; }); });
+  adimlar.forEach(function (a, i) {
+    var first = stops.findIndex(function (st) { return D.sahneler[st.si].adim === a.id; });
+    var n = D.sahneler.filter(function (s) { return s.adim === a.id; }).length;
+    var li = document.createElement("li"), b = document.createElement("button");
+    b.type = "button"; b.dataset.adim = a.id; b.dataset.i = i;
+    b.innerHTML = '<span class="op">OP ' + (i + 1) * 10 + '</span><span class="ad"></span><span class="n">' + n + (n > 1 ? " ekran" : " ekran") + "</span>";
+    b.querySelector(".ad").textContent = a.ad;
+    b.addEventListener("click", function () { go(first); });
+    li.appendChild(b); $("steps").appendChild(li);
+  });
+
+  function sceneStops(si) { return stops.map(function (st, i) { return st.si === si ? i : -1; }).filter(function (i) { return i >= 0; }); }
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+  function place() {
+    var st = stops[pos], s = D.sahneler[st.si], k = s.kartlar[st.ki] || {};
+    var narrow = window.matchMedia("(max-width: 760px)").matches;
+    var W = shot.clientWidth, H = shot.clientHeight, ox = shot.offsetLeft, oy = shot.offsetTop;
+    var FW = frame.clientWidth, FH = Math.max(frame.clientHeight, H);
+    leader.style.display = "none";
+    frame.style.minHeight = narrow ? "" : (card.offsetHeight + 24) + "px";   // küçük diyalog ekranında kart taşmasın
+    if (k.hedef) {
+      var r = k.hedef, x = r[0] / 100 * W, y = r[1] / 100 * H, w = r[2] / 100 * W, h = r[3] / 100 * H;
+      spot.hidden = false; dimall.hidden = true;
+      spot.style.left = x + "px"; spot.style.top = y + "px"; spot.style.width = w + "px"; spot.style.height = h + "px";
+      if (narrow) return;
+      var cw = card.offsetWidth, ch = card.offsetHeight, gap = 36, cx, cy;
+      x += ox; y += oy;                                                    // çerçeve koordinatı
+      if (x + w + gap + cw <= FW - 12) { cx = x + w + gap; cy = y + 12; }   // sağına
+      else if (x - gap - cw >= 12) { cx = x - gap - cw; cy = y + 12; }     // soluna
+      else if (y + h + gap + ch <= FH - 12) { cx = x + w / 2 - cw / 2; cy = y + h + gap; } // altına
+      else { cx = x + w / 2 - cw / 2; cy = y - gap - ch; }                // üstüne
+      cx = clamp(cx, 12, FW - cw - 12); cy = clamp(cy, 12, FH - ch - 12);
+      card.style.left = cx + "px"; card.style.top = cy + "px";
+      // kılavuz çizgisi: kartın hedefe en yakın kenarından hedef kutusunun en yakın noktasına
+      var ccx = cx + cw / 2, ccy = cy + ch / 2;
+      var tx = clamp(ccx, x, x + w), ty = clamp(ccy, y, y + h);
+      var sx = clamp(tx, cx, cx + cw), sy = clamp(ty, cy, cy + ch);
+      if (Math.hypot(tx - sx, ty - sy) > 14) {
+        ll.setAttribute("x1", sx); ll.setAttribute("y1", sy); ll.setAttribute("x2", tx); ll.setAttribute("y2", ty);
+        lc.setAttribute("cx", tx); lc.setAttribute("cy", ty);
+        leader.style.display = "block";
+      }
+    } else {
+      spot.hidden = true; dimall.hidden = false;
+      if (narrow) return;
+      card.style.left = ox + (W - card.offsetWidth) / 2 + "px";
+      card.style.top = oy + Math.max(16, (H - card.offsetHeight) / 2) + "px";
+    }
+  }
+
+  function render() {
+    var st = stops[pos], s = D.sahneler[st.si], k = s.kartlar[st.ki] || { baslik: s.baslik, metin: "" };
+    if (img.getAttribute("src") !== s.gorsel) {
+      img.src = s.gorsel; img.alt = s.baslik;
+      // diyalog ekranları küçük: sahnede doğal boyutundan büyütülmez
+      shot.style.maxWidth = s.boyut && s.boyut[0] < 1200 ? s.boyut[0] + "px" : "none";
+    }
+    var ks = sceneStops(st.si);
+    $("cnum").textContent = st.ki + 1;
+    $("ctitle").textContent = k.baslik;
+    $("ctext").textContent = k.metin;
+    $("ctext").hidden = !k.metin;
+    $("ccount").textContent = (pos + 1) + " / " + stops.length;
+    $("pips").innerHTML = ks.length > 1 ? ks.map(function (i) { return i === pos ? '<i class="on"></i>' : "<i></i>"; }).join("") : "";
+    $("prev").disabled = pos === 0;
+    $("next").textContent = pos === stops.length - 1 ? "Başa dön" : "Sonraki";
+    var ai = adimlar.findIndex(function (a) { return a.id === s.adim; });
+    $("stitle").innerHTML = "";
+    var sp = document.createElement("span");
+    sp.textContent = "OP " + (ai + 1) * 10 + ", " + (adimlar[ai] || {}).ad;
+    $("stitle").appendChild(sp);
+    $("stitle").appendChild(document.createTextNode(s.baslik));
+    document.querySelectorAll("#steps button").forEach(function (b) {
+      var bi = +b.dataset.i;
+      b.classList.toggle("done", bi < ai);
+      if (bi === ai) { b.setAttribute("aria-current", "step"); b.scrollIntoView({ block: "nearest", inline: "nearest" }); }
+      else b.removeAttribute("aria-current");
+    });
+    var thumbs = $("thumbs"); thumbs.innerHTML = "";
+    D.sahneler.forEach(function (x, si) {
+      if (x.adim !== s.adim) return;
+      var b = document.createElement("button");
+      b.type = "button"; b.title = x.baslik; b.setAttribute("aria-label", x.baslik);
+      if (si === st.si) b.setAttribute("aria-current", "true");
+      var im = document.createElement("img"); im.src = x.gorsel; im.alt = "";
+      b.appendChild(im);
+      b.addEventListener("click", function () { go(sceneStops(si)[0]); });
+      thumbs.appendChild(b);
+    });
+    if (img.complete) place(); else img.onload = place;
+    try { history.replaceState(null, "", "#s" + (pos + 1)); } catch (e) {}
+  }
+
+  function go(i) { pos = clamp(i, 0, stops.length - 1); render(); }
+  $("next").addEventListener("click", function () { go(pos === stops.length - 1 ? 0 : pos + 1); });
+  $("prev").addEventListener("click", function () { go(pos - 1); });
+  document.addEventListener("keydown", function (e) {
+    if (!$("lb").hidden) { if (e.key === "Escape") closeLb(); return; }
+    if (e.key === "ArrowRight") go(pos + 1);
+    else if (e.key === "ArrowLeft") go(pos - 1);
+  });
+  window.addEventListener("resize", place);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(place);
+
+  function closeLb() { $("lb").hidden = true; }
+  img.addEventListener("click", function () {
+    $("lbimg").src = img.src; $("lbt").textContent = img.alt; $("lbp").classList.add("fit"); $("lbfit").textContent = "Gerçek boyut";
+    $("lb").hidden = false; $("lbx").focus();
+  });
+  $("lbx").addEventListener("click", closeLb);
+  $("lbfit").addEventListener("click", function () {
+    var p = $("lbp"); p.classList.toggle("fit");
+    $("lbfit").textContent = p.classList.contains("fit") ? "Gerçek boyut" : "Ekrana sığdır";
+  });
+
+  var m = /^#s(\d+)$/.exec(location.hash || "");
+  go(m ? parseInt(m[1], 10) - 1 : 0);
+})();
+</script>
+
+</body>
+</html>

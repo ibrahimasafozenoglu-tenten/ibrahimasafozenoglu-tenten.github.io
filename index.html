@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>İbrahim Asaf Özenoğlu, Üretim Otomasyonu</title>
+<meta name="description" content="Fabrikalarda elle tekrar eden mühendislik işlerini yazılımla otomatikleştiren makine mühendisi. Vaka: kaynak iş emirleri.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
+<style>
+/* Yerleşim: tek sütun, sola yaslı; açılışta ölçekli süre çubuğu, vakada operasyon rotası,
+   ekranlarda POZ balonlu açıklamalar, sonda teknik resim antedi gibi iletişim bloğu. */
+:root {
+  --paper: #eef0ee;      /* çizim filmi zemini */
+  --sheet: #fbfcfb;
+  --ink: #1b2024;        /* grafit */
+  --ink-2: #5a6369;
+  --rule: #c7ccc9;
+  --signal: #f2c230;     /* sinyal sarısı: yalnızca vurgu */
+  --on-signal: #1b2024;
+  --f-display: "Archivo", "Arial Narrow", "Segoe UI", sans-serif;
+  --f-body: "Archivo", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #14171a; --sheet: #1d2125; --ink: #e7eae8; --ink-2: #9aa3a8; --rule: #343b40;
+    --signal: #f5c842; --on-signal: #14171a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #14171a; --sheet: #1d2125; --ink: #e7eae8; --ink-2: #9aa3a8; --rule: #343b40;
+  --signal: #f5c842; --on-signal: #14171a; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font: 400 1.0625rem/1.6 var(--f-body); font-variation-settings: "wdth" 100;
+  padding-inline: 16px; padding-block: 28px 44px;
+}
+main { max-width: 1080px; margin: 0 auto; display: grid; }
+h1, h2, h3 { font-family: var(--f-display); margin: 0; text-wrap: balance; }
+h1 { font-size: clamp(2.3rem, 6vw, 4.25rem); line-height: .98; font-weight: 780; font-variation-settings: "wdth" 70; max-width: 17ch; letter-spacing: -.01em; }
+h2 { font-size: clamp(1.75rem, 3.6vw, 2.5rem); line-height: 1.02; font-weight: 740; font-variation-settings: "wdth" 74; max-width: 26ch; }
+h3 { font-size: 1.1875rem; line-height: 1.2; font-weight: 680; font-variation-settings: "wdth" 85; }
+p { margin: 0; max-width: 64ch; }
+a { color: inherit; text-underline-offset: 3px; text-decoration-color: var(--rule); }
+a:hover { text-decoration-color: var(--ink); }
+section { display: grid; gap: 22px; padding-block: 52px; border-top: 1px solid var(--ink); }
+.muted { color: var(--ink-2); }
+.small { font-size: .9063rem; }
+
+/* açılış */
+.top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; padding-bottom: 18px; font-size: .9375rem; }
+.top strong { font-weight: 650; }
+.hero { border-top: 1px solid var(--ink); gap: 26px; padding-top: 40px; }
+.lead { font-size: 1.1875rem; color: var(--ink-2); max-width: 56ch; }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; }
+.btn {
+  display: inline-block; font: 650 1rem/1 var(--f-body); text-decoration: none;
+  padding: 15px 20px; border: 1.5px solid var(--ink); color: var(--ink); background: transparent;
+}
+.btn.primary { background: var(--ink); color: var(--sheet); }
+.btn:hover, .btn:focus-visible { background: var(--signal); border-color: var(--signal); color: var(--on-signal); outline: none; }
+
+/* ölçekli süre çubuğu: 0-150 dk */
+.clock { background: var(--sheet); border: 1px solid var(--ink); padding: 22px 22px 16px; display: grid; gap: 14px; max-width: 760px; }
+.clock h2 { font-size: 1.25rem; font-variation-settings: "wdth" 85; max-width: none; }
+.row { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 14px; align-items: center; }
+.row .who { font-weight: 650; line-height: 1.2; }
+.row .who span { display: block; font-weight: 400; font-size: .875rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.track { position: relative; height: 30px; }
+.bar { position: absolute; top: 0; bottom: 0; left: 0; background: var(--ink); }
+.range { position: absolute; top: 0; bottom: 0; border: 1.5px solid var(--ink); border-left: 0;
+  background: repeating-linear-gradient(135deg, var(--ink) 0 1.5px, transparent 1.5px 6px); }
+.row.fast .bar { background: var(--signal); }
+.row.fast .range { border-color: var(--signal); background: repeating-linear-gradient(135deg, var(--signal) 0 1.5px, transparent 1.5px 6px); }
+.axis { position: relative; height: 22px; margin-left: 126px; border-top: 1px solid var(--ink-2); font-size: .8125rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.axis span { position: absolute; top: 4px; transform: translateX(-50%); white-space: nowrap; }
+.axis span::before { content: ""; position: absolute; left: 50%; top: -9px; height: 5px; border-left: 1px solid var(--ink-2); }
+.axis span:first-child { transform: none; }
+.axis span:first-child::before { left: 0; }
+.axis span:last-child { transform: translateX(-100%); }
+.axis span:last-child::before { left: 100%; }
+
+/* vaka: elle / programla */
+.compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); border: 1px solid var(--ink); background: var(--sheet); }
+.compare > div { padding: 22px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.compare > div + div { border-left: 1px solid var(--ink); }
+@media (max-width: 620px) { .compare > div + div { border-left: 0; border-top: 1px solid var(--ink); } }
+.compare ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 0; }
+.compare li { display: grid; grid-template-columns: 50px 1fr; gap: 10px; padding: 8px 0; border-top: 1px solid var(--rule); align-items: baseline; }
+.op { font: 700 .8125rem/1 var(--f-display); font-variation-settings: "wdth" 80; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.compare .after .op { color: var(--ink); }
+.compare .after h3 { display: flex; gap: 10px; align-items: center; }
+.compare .after h3::before { content: ""; width: 12px; height: 12px; background: var(--signal); }
+
+/* ekranlar: POZ balonlu açıklama */
+.shots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 30px 26px; }
+.shots .wide { grid-column: 1 / -1; }
+@media (max-width: 720px) { .shots { grid-template-columns: minmax(0, 1fr); } }
+figure { margin: 0; display: grid; gap: 10px; min-width: 0; }
+figure img { width: 100%; height: auto; display: block; border: 1px solid var(--ink); }
+figcaption { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: start; font-size: .9688rem; }
+.balloon {
+  width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  border: 1.5px solid var(--ink); background: var(--signal); color: var(--on-signal);
+  font: 700 .875rem/1 var(--f-display); font-variant-numeric: tabular-nums;
+}
+figcaption strong { display: block; font-weight: 650; }
+.demo-link { display: flex; flex-wrap: wrap; gap: 14px 24px; align-items: center; justify-content: space-between; background: var(--sheet); border: 1px solid var(--ink); padding: 18px 22px; }
+.demo-link p { max-width: 52ch; }
+
+/* ilkeler, işler */
+.grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 26px; }
+.grid3 > div { display: grid; gap: 6px; align-content: start; min-width: 0; padding-top: 12px; border-top: 3px solid var(--ink); }
+.jobs { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); column-gap: 26px; }
+.jobs li { padding: 13px 0; border-bottom: 1px solid var(--rule); display: grid; gap: 2px; }
+.jobs li span { color: var(--ink-2); font-size: .9375rem; }
+
+/* çalışma sırası */
+.route { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 26px; }
+.route li { display: grid; gap: 8px; align-content: start; }
+.route .op { justify-self: start; padding: 6px 8px; border: 1px solid var(--ink); color: var(--ink); }
+.route li:first-child .op { background: var(--signal); border-color: var(--signal); color: var(--on-signal); }
+
+/* antet: iletişim */
+.titleblock { border: 1.5px solid var(--ink); background: var(--sheet); display: grid; grid-template-columns: 2fr 1.2fr 1.2fr; }
+.titleblock > div { padding: 14px 16px; border-left: 1px solid var(--ink); display: grid; gap: 4px; align-content: start; min-width: 0; }
+.titleblock > div:first-child { border-left: 0; }
+.titleblock .k { font-size: .8125rem; color: var(--ink-2); }
+.titleblock .v { font-weight: 600; overflow-wrap: anywhere; }
+.titleblock .big { font: 760 1.5rem/1.1 var(--f-display); font-variation-settings: "wdth" 74; }
+@media (max-width: 720px) {
+  .titleblock { grid-template-columns: 1fr; }
+  .titleblock > div { border-left: 0; border-top: 1px solid var(--ink); }
+  .titleblock > div:first-child { border-top: 0; }
+}
+.copy { font: 600 .8125rem var(--f-body); background: transparent; color: var(--ink); border: 1px solid var(--rule); padding: 5px 9px; cursor: pointer; justify-self: start; }
+.copy:hover, .copy:focus-visible { border-color: var(--ink); outline: none; }
+@media (max-width: 520px) {
+  .row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .axis { margin-left: 0; }
+}
+</style>
+
+</head>
+<body>
+<main>
+  <div class="top">
+    <strong>İbrahim Asaf Özenoğlu</strong>
+    <span class="muted">Makine mühendisi, üretim otomasyonu</span>
+  </div>
+
+  <section class="hero">
+    <h1>Fabrikanızda elle tekrar eden mühendislik işini otomatikleştiriyorum</h1>
+    <p class="lead">İş emri, iş talimatı, kontrol formu, teklif tablosu. Mühendislerinizin her hafta saatlerini alan işi tarif edin; fabrikanızın bilgisayarında çevrimdışı çalışan, kendi şablonlarınızı kullanan bir yazılıma dönüştüreyim.</p>
+
+    <figure class="clock" aria-label="Süre karşılaştırması">
+      <h2>Bir montajın kaynak, çapak ve taşlama iş emirleri</h2>
+      <div class="row">
+        <div class="who">Elle<span>2–2,5 saat</span></div>
+        <div class="track" role="img" aria-label="Elle 120 ile 150 dakika arası">
+          <div class="bar" style="width: 80%"></div>
+          <div class="range" style="left: 80%; width: 20%"></div>
+        </div>
+      </div>
+      <div class="row fast">
+        <div class="who">Programla<span>15–25 dakika</span></div>
+        <div class="track" role="img" aria-label="Programla 15 ile 25 dakika arası">
+          <div class="bar" style="width: 10%"></div>
+          <div class="range" style="left: 10%; width: 6.667%"></div>
+        </div>
+      </div>
+      <div class="axis" aria-hidden="true">
+        <span style="left: 0">0</span><span style="left: 20%">30</span><span style="left: 40%">60</span><span style="left: 60%">90</span><span style="left: 80%">120</span><span style="left: 100%">150 dk</span>
+      </div>
+      <p class="small muted">Stajda ölçülen süre; teknik resim eşleştirmesi dahil. Programla süre, programı düzenli kullanan biri içindir. Taralı kısım aralığı gösterir.</p>
+    </figure>
+
+    <div class="cta">
+      <a class="btn primary" href="onizleme/">Programı adım adım görün</a>
+      <a class="btn" href="#iletisim">İşinizi anlatın</a>
+    </div>
+  </section>
+
+  <section id="vaka">
+    <h2>Vaka: kabin üreten büyük bir fabrikada kaynak iş emirleri</h2>
+    <p>Stajım sırasında kaynak iş emirlerini Excel'de elle hazırlıyordum. Bu işi otomatikleştiren programı geliştirdim ve fabrikanın metal işlem ve kaynak yönetimine sundum.</p>
+    <div class="compare">
+      <div>
+        <h3>Elle</h3>
+        <ol>
+          <li><span class="op">OP 10</span>Saha fotoğrafını Excel hücresine yerleştir</li>
+          <li><span class="op">OP 20</span>Kaynak yerlerini fotoğraf üzerinde elle çiz</li>
+          <li><span class="op">OP 30</span>Parça kodunu 3D CAD'de tek tek ara</li>
+          <li><span class="op">OP 40</span>Teknik resimden kaynak sembolünü ekran görüntüsüyle kırp</li>
+          <li><span class="op">OP 50</span>Talimat cümlesini her adım için yaz; çapak ve taşlama için tekrarla</li>
+        </ol>
+      </div>
+      <div class="after">
+        <h3>Programla</h3>
+        <ol>
+          <li><span class="op">OP 10</span>Fotoğrafları ekle; çekim sırasına kendiliğinden dizilir</li>
+          <li><span class="op">OP 20</span>Kaynakları işaretle; parça kodu ve talimat kendiliğinden yazılır</li>
+          <li><span class="op">OP 30</span>Parça kodları reçete fişinin fotoğrafından okunur</li>
+          <li><span class="op">OP 40</span>Teknik resim PDF'inden semboller ve parça listesi okunur; unutulan kaynak uyarı verir</li>
+          <li><span class="op">OP 50</span>Tek tıkla firmanın kendi Excel şablonunda kaynak, çapak ve taşlama iş emirleri</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="shots">
+      <figure class="wide">
+        <img src="img/isaretle.jpg" alt="İşaretle ekranı: gerçek saha fotoğrafında köşe kaynakları işaretli; solda adımlar, sağda parça kodları ve teknik resim eşleşmesi" width="1440" height="860" loading="lazy">
+        <figcaption><span class="balloon">1</span><span><strong>Fotoğraf üzerinde işaretleme</strong>Gerçek bir montajın saha fotoğrafı. Kaynaklar işaretlenir; sağ panel parça kodlarını ve işaretin teknik resimdeki karşılığını gösterir.</span></figcaption>
+      </figure>
+      <figure>
+        <img src="img/teknik.jpg" alt="Teknik resim çalışma alanı: vektör PDF'ten bulunan altı köşe kaynağı sembolü ve parça listesi" width="1440" height="860" loading="lazy">
+        <figcaption><span class="balloon">2</span><span><strong>Teknik resim</strong>Kaynak sembolleri, POZ balonları ve parça listesi PDF'ten okunur; her sembol parçalarıyla eşleşir.</span></figcaption>
+      </figure>
+      <figure>
+        <img src="img/excel.jpg" alt="Excel iş emri sayfası: her adımda parça kodları, talimat cümlesi ve işaretli fotoğraf, köşesinde teknik resim kesiti" width="1500" height="838" loading="lazy">
+        <figcaption><span class="balloon">3</span><span><strong>Excel iş emri</strong>Sıra no, parça kodları, talimat ve işaretli fotoğraf firmanın şablonuna yerleşir.</span></figcaption>
+      </figure>
+    </div>
+    <p class="small muted">Fotoğraflar ve işaretler sahadan geldiği gibidir. Proje adı, parça kodları, teknik resim ve WPS numaraları tanıtım için değiştirilmiştir; hiçbir firmanın gerçek tasarım verisini içermez.</p>
+
+    <div class="demo-link">
+      <p><strong>Programın tamamı, gerçek ekranlarıyla.</strong> Sekiz operasyonda reçete okumadan Excel çıktısına kadar kısa açıklamalı bir tur.</p>
+      <a class="btn primary" href="onizleme/">Ön izlemeyi açın</a>
+    </div>
+  </section>
+
+  <section>
+    <h2>Fabrikanın işine uyar, fabrikadan veri çıkarmaz</h2>
+    <div class="grid3">
+      <div><h3>Çevrimdışı</h3><p>Yazılım fabrikanın bilgisayarında çalışır. Çizimler, parça kodları ve şablonlar dışarı gönderilmez.</p></div>
+      <div><h3>Mühendis onaylar</h3><p>Sistem önerir, mühendis onaylar. Kaynak parametresi gibi kritik bilgiler tahminle üretilmez; onaylı kayıtlardan gelir.</p></div>
+      <div><h3>Kendi şablonunuz</h3><p>Çıktı bugün kullandığınız Excel formatında olur. Ekibin alışkanlığı değişmez, yalnızca süre kısalır.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Elle tekrar eden her iş bir aday</h2>
+    <ul class="jobs">
+      <li><strong>İş ve montaj talimatları</strong><span>Fotoğraf, parça listesi ve sıradan standart talimat</span></li>
+      <li><strong>Kontrol ve kalite formları</strong><span>Ölçüm girişi, otomatik rapor, izlenebilirlik</span></li>
+      <li><strong>Teklif ve maliyet tabloları</strong><span>Teknik resim ve malzeme listesinden hızlı teklif</span></li>
+      <li><strong>Malzeme listesi aktarımı</strong><span>PDF ile Excel arasında elle kopyalamayı kaldırma</span></li>
+      <li><strong>Üretim raporları</strong><span>Dağınık Excel dosyalarından tek tıkla haftalık rapor</span></li>
+      <li><strong>WPS ve WPQR belgeleri</strong><span>Onaylı kayıtlardan standart belge üretimi</span></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Önce küçük bir pilot, sonra karar</h2>
+    <ol class="route">
+      <li><span class="op">OP 10</span><h3>Tarif</h3><p>20 dakikalık görüşmede işi ve bugün kullandığınız şablonu gösterirsiniz.</p></li>
+      <li><span class="op">OP 20</span><h3>Pilot</h3><p>Bir hat ve bir iş türü için yaklaşık 2 hafta. Elle ve programla süre aynı işlerde ölçülür.</p></li>
+      <li><span class="op">OP 30</span><h3>Kurulum</h3><p>Sonuç ikna ederse kurulum, eğitim ve destek. Fiyat pilot sonucuna göre konuşulur.</p></li>
+    </ol>
+  </section>
+
+  <section id="iletisim">
+    <h2>İşinizi bir cümleyle anlatın</h2>
+    <p>"Her hafta şu formu elle dolduruyoruz" demeniz yeterli. Aynı gün dönüş yaparım.</p>
+    <div class="titleblock" aria-label="İletişim bilgileri">
+      <div>
+        <span class="k">Hazırlayan</span>
+        <span class="big">İbrahim Asaf Özenoğlu</span>
+        <span class="muted">Makine mühendisi, üretim otomasyonu</span>
+      </div>
+      <div>
+        <span class="k">E-posta</span>
+        <span class="v" id="mail">ibrahimasafozenoglu@gmail.com</span>
+        <button class="copy" id="copy-mail" type="button" data-copy="mail">Kopyala</button>
+      </div>
+      <div>
+        <span class="k">Telefon ve LinkedIn</span>
+        <span class="v" id="tel">0551 083 42 71</span>
+        <a class="v" href="https://www.linkedin.com/in/ibrahimozenoglu" target="_blank" rel="noopener">linkedin.com/in/ibrahimozenoglu</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+document.querySelectorAll(".copy").forEach(function (b) {
+  b.addEventListener("click", function () {
+    var el = document.getElementById(b.dataset.copy);
+    var text = el.textContent.trim();
+    var done = function () { b.textContent = "Kopyalandı"; setTimeout(function () { b.textContent = "Kopyala"; }, 1600); };
+    var select = function () { var r = document.createRange(); r.selectNodeContents(el); var s = getSelection(); s.removeAllRanges(); s.addRange(r); };
+    try { navigator.clipboard.writeText(text).then(done, select); } catch (e) { select(); }
+  });
+});
+</script>
+
+</body>
+</html>

@@ -1,1 +1,3 @@
-# ibrahimasafozenoglu-tenten.github.io
+# İbrahim Asaf Özenoğlu
+
+Tanıtım sitesi: https://ibrahimasafozenoglu-tenten.github.io
